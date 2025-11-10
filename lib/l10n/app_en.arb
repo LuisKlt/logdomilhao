@@ -1,0 +1,25 @@
+{
+  "appTitle": "LogicMillion",
+  "homeWelcome": "Learn programming logic in a fun and interactive way!",
+  "startLearning": "Start Learning",
+  "viewProgress": "View Progress",
+  "settings": "Settings",
+  
+  "darkMode": "Dark Mode",
+  "language": "Language",
+  
+  "statistics": "STATISTICS",
+  "achievements": "ACHIEVEMENTS",
+  
+  "level": "Level",
+  "points": "Points",
+  "accuracy": "Accuracy",
+  "exercises": "Exercises",
+  "correctAnswers": "Correct Answers",
+  "recentActivity": "Recent Activity",
+  
+  "submit": "Submit",
+  "next": "Next",
+  "correct": "Correct!",
+  "incorrect": "Incorrect!"
+}
