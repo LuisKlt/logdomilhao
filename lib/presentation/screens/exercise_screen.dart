@@ -35,7 +35,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           title: 'Declaração de Variáveis em C',
           description: 'Complete o código para declarar uma variável inteira',
           type: 'fill_blank',
-          content: 'Complete o código abaixo para declarar uma variável inteira chamada "idade" com valor 25:',
+          content:
+              'Complete o código abaixo para declarar uma variável inteira chamada "idade" com valor 25:',
           correctAnswer: 'int idade = 25;',
           options: [],
           points: 10,
@@ -46,15 +47,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           title: 'Ordenação de Código - Loop For',
           description: 'Arraste os blocos para ordenar o código corretamente',
           type: 'code_ordering',
-          content: 'Ordene os blocos para criar um loop for que imprime números de 1 a 5:',
+          content:
+              'Ordene os blocos para criar um loop for que imprime números de 1 a 5:',
           correctAnswer: 'for(int i=1;i<=5;i++){printf("%d",i);}',
-          options: [
-            'for(int i=1;',
-            'i<=5;',
-            'i++){',
-            'printf("%d",i);',
-            '}'
-          ],
+          options: ['for(int i=1;', 'i<=5;', 'i++){', 'printf("%d",i);', '}'],
           points: 15,
         ),
         Exercise(
@@ -63,7 +59,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           title: 'Funções em C',
           description: 'Selecione a sintaxe correta para declarar uma função',
           type: 'multiple_choice',
-          content: 'Qual é a forma correta de declarar uma função que retorna um inteiro e não recebe parâmetros?',
+          content:
+              'Qual é a forma correta de declarar uma função que retorna um inteiro e não recebe parâmetros?',
           correctAnswer: 'int funcao()',
           options: [
             'function int funcao()',
@@ -81,22 +78,24 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   void _checkAnswer() {
     final exercises = _getExercises();
     final currentExercise = exercises[_currentExerciseIndex];
-    
+
     setState(() {
       _hasAnswered = true;
-      
+
       switch (currentExercise.type) {
         case 'multiple_choice':
           _isCorrect = _selectedAnswer == currentExercise.correctAnswer;
           break;
         case 'fill_blank':
-          _isCorrect = _codeController.text.trim() == currentExercise.correctAnswer;
+          // ✅ VERIFICAÇÃO ESPECÍFICA PARA FILL_BLANK
+          final userAnswer = _codeController.text.trim();
+          _isCorrect = userAnswer == currentExercise.correctAnswer;
           break;
         case 'code_ordering':
           _isCorrect = _selectedOrder.join('') == currentExercise.correctAnswer;
           break;
       }
-      
+
       if (_isCorrect) {
         _score += currentExercise.points;
       }
@@ -105,7 +104,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _nextExercise() {
     final exercises = _getExercises();
-    
+
     setState(() {
       if (_currentExerciseIndex < exercises.length - 1) {
         _currentExerciseIndex++;
@@ -123,8 +122,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _showFinalResult() {
     final exercises = _getExercises();
-    final totalPoints = exercises.fold(0, (sum, exercise) => sum + exercise.points);
-    
+    final totalPoints =
+        exercises.fold(0, (sum, exercise) => sum + exercise.points);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -134,7 +134,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              _score >= totalPoints / 2 ? Icons.emoji_events : Icons.sentiment_satisfied,
+              _score >= totalPoints / 2
+                  ? Icons.emoji_events
+                  : Icons.sentiment_satisfied,
               color: _score >= totalPoints / 2 ? Colors.amber : Colors.blue,
               size: 64,
             ),
@@ -173,7 +175,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         ...exercise.options.map((option) {
           final isSelected = _selectedAnswer == option;
           final isCorrect = option == exercise.correctAnswer;
-          
+
           Color? backgroundColor;
           if (_hasAnswered) {
             if (isSelected && isCorrect) {
@@ -186,16 +188,18 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           } else if (isSelected) {
             backgroundColor = AppTheme.primaryColor.withOpacity(0.1);
           }
-          
+
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             color: backgroundColor,
             child: ListTile(
-              onTap: _hasAnswered ? null : () {
-                setState(() {
-                  _selectedAnswer = option;
-                });
-              },
+              onTap: _hasAnswered
+                  ? null
+                  : () {
+                      setState(() {
+                        _selectedAnswer = option;
+                      });
+                    },
               leading: isSelected
                   ? Icon(
                       _hasAnswered
@@ -209,7 +213,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       _hasAnswered && isCorrect
                           ? Icons.check_circle
                           : Icons.radio_button_unchecked,
-                      color: _hasAnswered && isCorrect ? Colors.green : Colors.grey,
+                      color: _hasAnswered && isCorrect
+                          ? Colors.green
+                          : Colors.grey,
                     ),
               title: Text(
                 option,
@@ -252,18 +258,31 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 children: [
                   const Text(
                     '    ',
-                    style: TextStyle(color: Colors.white, fontFamily: 'Monospace'),
+                    style:
+                        TextStyle(color: Colors.white, fontFamily: 'Monospace'),
                   ),
                   Expanded(
                     child: TextField(
                       controller: _codeController,
                       enabled: !_hasAnswered,
-                      style: const TextStyle(color: Colors.white, fontFamily: 'Monospace'),
-                      decoration: const InputDecoration(
-                        hintText: 'Digite o código aqui...',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        border: InputBorder.none,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Monospace',
                       ),
+                      decoration: InputDecoration(
+                        hintText: 'Digite o código aqui...',
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        border: InputBorder.none,
+                        // ✅ ADICIONE ESTE ERROR TEXT PARA FEEDBACK
+                        errorText: _codeController.text.isEmpty && _hasAnswered
+                            ? 'Campo obrigatório'
+                            : null,
+                      ),
+                      // ✅ ADICIONE ONCHANGED PARA ATUALIZAR EM TEMPO REAL
+                      onChanged: (value) {
+                        if (_hasAnswered) return;
+                        setState(() {}); // Força rebuild para atualizar botão
+                      },
                     ),
                   ),
                 ],
@@ -279,7 +298,23 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             ],
           ),
         ),
+
+        // ✅ ADICIONE UM BOTÃO DE LIMPAR (OPCIONAL)
+        if (!_hasAnswered && _codeController.text.isNotEmpty)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _codeController.clear();
+                });
+              },
+              child: const Text('Limpar'),
+            ),
+          ),
+
         const SizedBox(height: 16),
+
         if (_hasAnswered)
           Container(
             padding: const EdgeInsets.all(12),
@@ -299,7 +334,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _isCorrect 
+                    _isCorrect
                         ? 'Correto! A declaração está certa.'
                         : 'Resposta correta: ${exercise.correctAnswer}',
                     style: TextStyle(
@@ -331,7 +366,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Blocos disponíveis
         Wrap(
           spacing: 8,
@@ -388,9 +423,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             );
           }).toList(),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Área de soltura
         Container(
           width: double.infinity,
@@ -401,7 +436,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: Colors.grey[400]!,
-              style: BorderStyle.dashed,
+              style: BorderStyle.none,
             ),
           ),
           child: DragTarget<String>(
@@ -461,7 +496,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             },
           ),
         ),
-        
+
         if (_hasAnswered)
           Container(
             margin: const EdgeInsets.only(top: 16),
@@ -482,7 +517,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _isCorrect 
+                    _isCorrect
                         ? 'Correto! A ordem está certa.'
                         : 'Ordem correta: ${exercise.correctAnswer}',
                     style: TextStyle(
@@ -512,12 +547,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   bool _isAnswerSelected() {
     final exercises = _getExercises();
     final currentExercise = exercises[_currentExerciseIndex];
-    
+
     switch (currentExercise.type) {
       case 'multiple_choice':
         return _selectedAnswer != null;
       case 'fill_blank':
-        return _codeController.text.trim().isNotEmpty;
+        return _codeController.text
+            .trim()
+            .isNotEmpty; // ✅ VERIFICA SE TEM TEXTO
       case 'code_ordering':
         return _selectedOrder.isNotEmpty;
       default:
@@ -534,7 +571,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     final exercises = _getExercises();
-    
+
     if (exercises.isEmpty) {
       return Scaffold(
         appBar: AppBar(
@@ -547,12 +584,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         ),
       );
     }
-    
+
     final currentExercise = exercises[_currentExerciseIndex];
-    
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nível ${widget.levelId} - Exercício ${_currentExerciseIndex + 1}'),
+        title: Text(
+            'Nível ${widget.levelId} - Exercício ${_currentExerciseIndex + 1}'),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -562,9 +600,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           LinearProgressIndicator(
             value: (_currentExerciseIndex + 1) / exercises.length,
             backgroundColor: Colors.grey[200],
-            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
           ),
-          
+
           // Conteúdo do exercício
           Expanded(
             child: SingleChildScrollView(
@@ -604,14 +643,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Conteúdo interativo específico do tipo de exercício
                   _buildExerciseContent(currentExercise),
                 ],
               ),
             ),
           ),
-          
+
           // Barra inferior com botões
           Container(
             padding: const EdgeInsets.all(16),
@@ -640,11 +679,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       ? _nextExercise
                       : (_isAnswerSelected() ? _checkAnswer : null),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _hasAnswered ? Colors.green : AppTheme.primaryColor,
+                    backgroundColor: _hasAnswered
+                        ? Colors.green
+                        : (_isAnswerSelected()
+                            ? AppTheme.primaryColor
+                            : Colors.grey),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                   ),
-                  child: Text(_hasAnswered ? 'PRÓXIMO' : 'VERIFICAR'),
+                  child: Text(
+                    _hasAnswered
+                        ? 'PRÓXIMO'
+                        : (_isAnswerSelected()
+                            ? 'VERIFICAR'
+                            : 'PREENCHA A RESPOSTA'),
+                  ),
                 ),
               ],
             ),

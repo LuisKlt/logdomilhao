@@ -21,7 +21,7 @@ class Achievement {
 
 class GamificationProvider with ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  
+
   int _points = 0;
   int _correctAnswers = 0;
   int _totalExercises = 0;
@@ -30,18 +30,32 @@ class GamificationProvider with ChangeNotifier {
   List<Map<String, dynamic>> _recentScores = [];
 
   int get points => _points;
+  int get totalPoints => _points;
   int get correctAnswers => _correctAnswers;
   int get totalExercises => _totalExercises;
   int get currentLevel => _currentLevel;
   List<Achievement> get achievements => _achievements;
   List<Map<String, dynamic>> get recentScores => _recentScores;
-  
-  double get accuracy => _totalExercises > 0 ? _correctAnswers / _totalExercises * 100 : 0;
+
+  double get accuracy =>
+      _totalExercises > 0 ? _correctAnswers / _totalExercises * 100 : 0;
 
   GamificationProvider() {
     _initAchievements();
-    _loadUserStats();
+    // Não chame _loadUserStats() aqui, porque é assíncrono e pode não completar a tempo
   }
+
+  Future<void> loadUserStats() async {
+    await _loadUserStats();
+  }
+
+  int getNextLevelPoints(int currentPoints) {
+    if (_currentLevel == 1) return 100;
+    if (_currentLevel == 2) return 200;
+    return currentPoints + 100;
+  }
+
+  int getCurrentLevel() => _currentLevel;
 
   void _initAchievements() {
     _achievements = [
@@ -113,7 +127,7 @@ class GamificationProvider with ChangeNotifier {
 
       // Verificar conquistas com base nos dados carregados
       _checkAchievements();
-      
+
       notifyListeners();
     } catch (e) {
       print('Erro ao carregar estatísticas do usuário: $e');
@@ -127,38 +141,34 @@ class GamificationProvider with ChangeNotifier {
         'exerciseId': exerciseId,
         'points': points,
         'isCorrect': isCorrect ? 1 : 0,
-        'completedAt': DateTime.now().toIso8601String(),
+        'completedAt': DateTime.now(),
       };
 
       await _dbHelper.insert('scores', score);
-      
+
       if (isCorrect) {
         _points += points;
         _correctAnswers++;
-        
+
         // Atualizar pontos do usuário no banco de dados
         await _dbHelper.update(
-          'users', 
-          {'totalPoints': _points}, 
-          'id = ?', 
-          [1]
-        );
-        
+            'users', {'totalPoints': _points}, 'id = ?', [1]);
+
         // Verificar se o usuário subiu de nível
         _checkLevelUp();
       }
-      
+
       _totalExercises++;
-      
+
       // Recarregar pontuações recentes
       final recentScoresMaps = await _dbHelper.query('scores');
       if (recentScoresMaps.isNotEmpty) {
         _recentScores = recentScoresMaps.take(10).toList();
       }
-      
+
       // Verificar conquistas
       _checkAchievements();
-      
+
       notifyListeners();
     } catch (e) {
       print('Erro ao adicionar pontuação: $e');
@@ -169,28 +179,20 @@ class GamificationProvider with ChangeNotifier {
     try {
       // Verificar se o usuário tem pontos suficientes para subir de nível
       final levels = await _dbHelper.query('levels');
-      
+
       for (var level in levels) {
-        if (level['id'] > _currentLevel && 
+        if (level['id'] > _currentLevel &&
             _points >= (level['requiredPoints'] ?? 0)) {
           _currentLevel = level['id'];
-          
+
           // Desbloquear o nível no banco de dados
           await _dbHelper.update(
-            'levels', 
-            {'isLocked': 0}, 
-            'id = ?', 
-            [_currentLevel]
-          );
-          
+              'levels', {'isLocked': 0}, 'id = ?', [_currentLevel]);
+
           // Atualizar nível do usuário
           await _dbHelper.update(
-            'users', 
-            {'currentLevel': _currentLevel}, 
-            'id = ?', 
-            [1]
-          );
-          
+              'users', {'currentLevel': _currentLevel}, 'id = ?', [1]);
+
           break;
         }
       }

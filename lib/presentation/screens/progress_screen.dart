@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:logdomilhao/core/providers/gamification_provider.dart';
+import 'package:logdomilhao/providers/gamification_provider.dart'; // ✅ Import correto
 import 'package:logdomilhao/core/localization/app_localizations.dart';
-import 'package:logdomilhao/data/models/score_model.dart';
 import 'package:intl/intl.dart';
 
 class ProgressScreen extends StatefulWidget {
@@ -12,18 +11,14 @@ class ProgressScreen extends StatefulWidget {
   _ProgressScreenState createState() => _ProgressScreenState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProviderStateMixin {
+class _ProgressScreenState extends State<ProgressScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
-    // Carregar estatísticas do usuário
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GamificationProvider>(context, listen: false).loadUserStats();
-    });
   }
 
   @override
@@ -32,33 +27,66 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     super.dispose();
   }
 
+  // Método helper para tradução segura
+  String _safeTranslate(
+      AppLocalizations? localizations, String key, String fallback) {
+    if (localizations == null) return fallback;
+    try {
+      return localizations.translate(key) ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final gamificationProvider = Provider.of<GamificationProvider>(context);
     final localizations = AppLocalizations.of(context);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.translate('progress')),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: localizations.translate('statistics').toUpperCase()),
-            Tab(text: localizations.translate('achievements').toUpperCase()),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildStatisticsTab(context, gamificationProvider, localizations),
-          _buildAchievementsTab(context, gamificationProvider, localizations),
-        ],
-      ),
+
+    return Consumer<GamificationProvider>(
+      builder: (context, gamificationProvider, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(_safeTranslate(localizations, 'progress', 'Progresso')),
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: [
+                Tab(
+                  text: _safeTranslate(
+                          localizations, 'statistics', 'Estatísticas')
+                      .toUpperCase(),
+                ),
+                Tab(
+                  text: _safeTranslate(
+                          localizations, 'achievements', 'Conquistas')
+                      .toUpperCase(),
+                ),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              if (localizations != null) ...[
+                _buildStatisticsTab(
+                    context, gamificationProvider, localizations),
+                _buildAchievementsTab(
+                    context, gamificationProvider, localizations),
+              ] else ...[
+                const Center(child: CircularProgressIndicator()),
+                const Center(child: CircularProgressIndicator()),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildStatisticsTab(BuildContext context, GamificationProvider provider, AppLocalizations localizations) {
+  Widget _buildStatisticsTab(
+    BuildContext context,
+    GamificationProvider provider,
+    AppLocalizations localizations,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -74,10 +102,15 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildUserLevelCard(BuildContext context, GamificationProvider provider, AppLocalizations localizations) {
-    final currentLevel = provider.getCurrentLevel();
-    final nextLevelPoints = provider.getNextLevelPoints(provider.totalPoints);
-    
+  Widget _buildUserLevelCard(
+    BuildContext context,
+    GamificationProvider provider,
+    AppLocalizations localizations,
+  ) {
+    final currentLevel = provider.currentLevel;
+    final totalPoints = provider.points;
+    final nextLevelPoints = provider.getNextLevelPoints(totalPoints);
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -106,7 +139,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${localizations.translate('level')} $currentLevel',
+                        '${_safeTranslate(localizations, 'level', 'Nível')} $currentLevel',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -114,7 +147,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$nextLevelPoints ${localizations.translate('next_level_points')}',
+                        '$nextLevelPoints ${_safeTranslate(localizations, 'next_level_points', 'pontos para o próximo nível')}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -128,7 +161,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: 1 - (nextLevelPoints / 10),
+                value: (totalPoints / nextLevelPoints).clamp(0.0, 1.0),
                 minHeight: 10,
                 backgroundColor: Colors.grey[300],
                 valueColor: AlwaysStoppedAnimation<Color>(
@@ -138,7 +171,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             ),
             const SizedBox(height: 8),
             Text(
-              '${localizations.translate('total_points')}: ${provider.totalPoints}',
+              '${_safeTranslate(localizations, 'total_points', 'Pontos totais')}: $totalPoints',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
               ),
@@ -149,7 +182,11 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildStatisticsCard(BuildContext context, GamificationProvider provider, AppLocalizations localizations) {
+  Widget _buildStatisticsCard(
+    BuildContext context,
+    GamificationProvider provider,
+    AppLocalizations localizations,
+  ) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -159,7 +196,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              localizations.translate('statistics'),
+              _safeTranslate(localizations, 'statistics', 'Estatísticas'),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -169,21 +206,22 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
             _buildStatItem(
               context,
               Icons.check_circle,
-              localizations.translate('accuracy'),
+              _safeTranslate(localizations, 'accuracy', 'Precisão'),
               '${provider.accuracy.toStringAsFixed(1)}%',
             ),
             const Divider(),
             _buildStatItem(
               context,
               Icons.assignment,
-              localizations.translate('exercises'),
+              _safeTranslate(localizations, 'exercises', 'Exercícios'),
               '${provider.totalExercises}',
             ),
             const Divider(),
             _buildStatItem(
               context,
               Icons.check,
-              localizations.translate('correct_answers'),
+              _safeTranslate(
+                  localizations, 'correct_answers', 'Respostas Corretas'),
               '${provider.correctAnswers}',
             ),
           ],
@@ -192,7 +230,12 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildStatItem(BuildContext context, IconData icon, String label, String value) {
+  Widget _buildStatItem(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -217,9 +260,13 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildRecentHistoryCard(BuildContext context, GamificationProvider provider, AppLocalizations localizations) {
+  Widget _buildRecentHistoryCard(
+    BuildContext context,
+    GamificationProvider provider,
+    AppLocalizations localizations,
+  ) {
     final recentScores = provider.recentScores;
-    
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -229,7 +276,8 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              localizations.translate('recent_history'),
+              _safeTranslate(
+                  localizations, 'recent_history', 'Histórico Recente'),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -254,7 +302,8 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: recentScores.length,
                     itemBuilder: (context, index) {
-                      return _buildScoreItem(context, recentScores[index]);
+                      final score = recentScores[index];
+                      return _buildScoreItem(context, score);
                     },
                   ),
           ],
@@ -263,24 +312,26 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildScoreItem(BuildContext context, Score score) {
+  Widget _buildScoreItem(BuildContext context, Map<String, dynamic> score) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-    final formattedDate = dateFormat.format(score.completedAt);
-    
+    final completedAt = score['completedAt'] != null
+        ? DateTime.parse(score['completedAt'].toString())
+        : DateTime.now();
+    final formattedDate = dateFormat.format(completedAt);
+
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: score.isCorrect
-            ? Colors.green[100]
-            : Colors.red[100],
+        backgroundColor:
+            (score['isCorrect'] == 1) ? Colors.green[100] : Colors.red[100],
         child: Icon(
-          score.isCorrect ? Icons.check : Icons.close,
-          color: score.isCorrect ? Colors.green : Colors.red,
+          (score['isCorrect'] == 1) ? Icons.check : Icons.close,
+          color: (score['isCorrect'] == 1) ? Colors.green : Colors.red,
         ),
       ),
-      title: Text('Exercício #${score.exerciseId}'),
+      title: Text('Exercício #${score['exerciseId']}'),
       subtitle: Text(formattedDate),
       trailing: Text(
-        '+${score.points}',
+        '+${score['points']}',
         style: TextStyle(
           color: Theme.of(context).colorScheme.primary,
           fontWeight: FontWeight.bold,
@@ -290,9 +341,13 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildAchievementsTab(BuildContext context, GamificationProvider provider, AppLocalizations localizations) {
+  Widget _buildAchievementsTab(
+    BuildContext context,
+    GamificationProvider provider,
+    AppLocalizations localizations,
+  ) {
     final achievements = provider.achievements;
-    
+
     return GridView.builder(
       padding: const EdgeInsets.all(16.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -309,7 +364,11 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildAchievementCard(BuildContext context, Achievement achievement, AppLocalizations localizations) {
+  Widget _buildAchievementCard(
+    BuildContext context,
+    Achievement achievement,
+    AppLocalizations localizations,
+  ) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -371,9 +430,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
-                color: achievement.isUnlocked
-                    ? null
-                    : Colors.grey,
+                color: achievement.isUnlocked ? null : Colors.grey,
               ),
             ),
           ],
@@ -384,16 +441,18 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
 
   IconData _getAchievementIcon(String achievementId) {
     switch (achievementId) {
-      case 'first_step':
-        return Icons.emoji_events;
-      case 'dedicated_student':
-        return Icons.school;
-      case 'logic_master':
-        return Icons.psychology;
-      case 'perfect_score':
+      case 'first_correct':
+        return Icons.check_circle;
+      case 'streak_3':
+        return Icons.bolt;
+      case 'level_2':
         return Icons.star;
-      case 'fast_learner':
-        return Icons.speed;
+      case 'points_100':
+        return Icons.emoji_events;
+      case 'level_3':
+        return Icons.star_border;
+      case 'exercises_20':
+        return Icons.assignment_turned_in;
       default:
         return Icons.emoji_events;
     }
