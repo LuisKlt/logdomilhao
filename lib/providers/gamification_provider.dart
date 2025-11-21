@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:logdomilhao/data/database_helper.dart';
+import 'package:logdomilhao/data/database/database_helper.dart';
 
 class Achievement {
   final String id;
@@ -176,30 +176,57 @@ class GamificationProvider with ChangeNotifier {
   }
 
   void _checkLevelUp() async {
-    try {
-      // Verificar se o usuário tem pontos suficientes para subir de nível
-      final levels = await _dbHelper.query('levels');
-
+  try {
+    // Carregar os níveis do banco
+    final levels = await _dbHelper.query('levels');
+    
+    // Ordenar níveis por ID
+    levels.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+    
+    // Verificar qual nível o usuário pode desbloquear baseado nos pontos
+    int newLevel = _currentLevel;
+    
+    for (var level in levels) {
+      final levelId = level['id'] as int;
+      final requiredPoints = level['requiredPoints'] as int;
+      
+      // Se o usuário tem pontos suficientes para este nível, pode desbloqueá-lo
+      if (_points >= requiredPoints && levelId > newLevel) {
+        newLevel = levelId;
+      }
+    }
+    
+    // Se o nível mudou, atualizar
+    if (newLevel != _currentLevel) {
+      _currentLevel = newLevel;
+      
+      // Atualizar nível do usuário no banco de dados
+      await _dbHelper.update(
+        'users', 
+        {'currentLevel': _currentLevel}, 
+        'id = ?', 
+        [1]
+      );
+      
+      // Desbloquear todos os níveis até o nível atual no banco
       for (var level in levels) {
-        if (level['id'] > _currentLevel &&
-            _points >= (level['requiredPoints'] ?? 0)) {
-          _currentLevel = level['id'];
-
-          // Desbloquear o nível no banco de dados
+        final levelId = level['id'] as int;
+        if (levelId <= _currentLevel) {
           await _dbHelper.update(
-              'levels', {'isLocked': 0}, 'id = ?', [_currentLevel]);
-
-          // Atualizar nível do usuário
-          await _dbHelper.update(
-              'users', {'currentLevel': _currentLevel}, 'id = ?', [1]);
-
-          break;
+            'levels', 
+            {'isLocked': 0}, 
+            'id = ?', 
+            [levelId]
+          );
         }
       }
-    } catch (e) {
-      print('Erro ao verificar subida de nível: $e');
+      
+      notifyListeners();
     }
+  } catch (e) {
+    print('Erro ao verificar subida de nível: $e');
   }
+}
 
   void _checkAchievements() {
     // Verificar conquistas baseadas em pontos

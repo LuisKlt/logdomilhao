@@ -1,97 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:logdomilhao/data/database_helper.dart';
+import 'package:logdomilhao/data/database/database_helper.dart';
 import 'package:logdomilhao/data/models/exercise_model.dart';
-import 'package:logdomilhao/data/models/score_model.dart';
-import 'package:logdomilhao/providers/level_provider.dart';
+import 'package:logdomilhao/providers/gamification_provider.dart';
 import 'package:provider/provider.dart';
 
 class ExerciseProvider with ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   List<Exercise> _exercises = [];
-  List<Score> _scores = [];
-  
+  bool _isLoading = false;
+
   List<Exercise> get exercises => _exercises;
-  List<Score> get scores => _scores;
+  bool get isLoading => _isLoading;
 
-  ExerciseProvider() {
-    _loadScores();
-  }
-
-  Future<List<Exercise>> getExercisesByLevel(int levelId) async {
-    final db = await _dbHelper.database;
-    final exercisesData = await db.query(
-      'exercises',
-      where: 'levelId = ?',
-      whereArgs: [levelId],
-    );
-    
-    _exercises = exercisesData.map((exercise) => Exercise.fromMap(exercise)).toList();
+  // Carrega exercícios do banco baseado no ID do nível
+  Future<void> loadExercisesByLevel(int levelId) async {
+    _isLoading = true;
     notifyListeners();
-    return _exercises;
-  }
 
-  Future<void> _loadScores() async {
-    final db = await _dbHelper.database;
-    final scoresData = await db.query('scores', orderBy: 'completedAt DESC');
-    _scores = scoresData.map((score) => Score.fromMap(score)).toList();
-    notifyListeners();
-  }
+    try {
+      final db = await _dbHelper.database;
+      final exercisesData = await db.query(
+        'exercises',
+        where: 'levelId = ?',
+        whereArgs: [levelId],
+      );
 
-  Future<void> saveScore(BuildContext context, int exerciseId, int points, bool isCorrect) async {
-    final db = await _dbHelper.database;
-    
-    // Obter o exercício atual
-    final exercise = _exercises.firstWhere((e) => e.id == exerciseId);
-    
-    // Salvar a pontuação
-    final score = Score(
-      userId: 1, // Usuário padrão
-      exerciseId: exerciseId,
-      points: isCorrect ? points : 0,
-      isCorrect: isCorrect,
-      completedAt: DateTime.now() //.toIso8601String(),
-    );
-    
-    await db.insert('scores', score.toMap());
-    
-    // Atualizar o progresso do usuário se a resposta estiver correta
-    if (isCorrect) {
-      final levelProvider = Provider.of<LevelProvider>(context, listen: false);
-      await levelProvider.updateUserProgress(points, exercise.levelId);
+      _exercises = exercisesData.map((e) => Exercise.fromMap(e)).toList();
+    } catch (e) {
+      print("Erro ao carregar exercícios: $e");
+      _exercises = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    
-    await _loadScores();
   }
 
-  // Fornece feedback imediato sobre a resposta
-  String getFeedback(bool isCorrect, String exerciseType) {
-    if (isCorrect) {
-      return 'Parabéns! Você acertou!';
-    } else {
-      switch (exerciseType) {
-        case 'multiple_choice':
-          return 'Ops! Resposta incorreta. Tente novamente!';
-        case 'fill_blank':
-          return 'Ops! Sua resposta não está correta. Verifique a sintaxe!';
-        case 'code_completion':
-          return 'Seu código não está funcionando corretamente. Revise a lógica!';
-        default:
-          return 'Resposta incorreta. Continue tentando!';
+  // Lógica para salvar pontuação e verificar desbloqueio
+  Future<bool> submitLevelResult(BuildContext context, int levelId, int totalScore, int maxPossibleScore) async {
+    // Critério: Para desbloquear o próximo, precisa de 50% dos pontos do nível
+    final double percentage = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
+    final bool passedLevel = percentage >= 0.5; // 50% para passar
+
+    if (passedLevel) {
+      final db = await _dbHelper.database;
+      
+      // 1. Desbloquear o próximo nível (levelId + 1)
+      final nextLevelId = levelId + 1;
+      
+      // Verifica se existe o próximo nível
+      final nextLevelExists = await db.query(
+        'levels', 
+        where: 'id = ?', 
+        whereArgs: [nextLevelId]
+      );
+
+      if (nextLevelExists.isNotEmpty) {
+        await db.update(
+          'levels',
+          {'isLocked': 0}, // 0 = Desbloqueado
+          where: 'id = ?',
+          whereArgs: [nextLevelId],
+        );
+        
+        // Atualiza o GamificationProvider para refletir a mudança na UI
+        if (context.mounted) {
+           await Provider.of<GamificationProvider>(context, listen: false).loadUserStats();
+        }
+        return true; // Retorna true se desbloqueou algo novo
       }
     }
-  }
-
-  // Verifica se a resposta está correta
-  bool checkAnswer(Exercise exercise, String userAnswer) {
-    switch (exercise.type) {
-      case 'multiple_choice':
-        return userAnswer == exercise.correctAnswer;
-      case 'fill_blank':
-      case 'code_completion':
-        // Poderia implementar uma lógica mais complexa para verificar código
-        return userAnswer.trim() == exercise.correctAnswer.trim();
-      default:
-        return false;
-    }
+    return false;
   }
 }

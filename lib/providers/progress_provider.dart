@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:logdomilhao/data/database_helper.dart';
+import 'package:logdomilhao/data/database/database_helper.dart';
 import 'package:logdomilhao/data/models/score_model.dart';
 
 class ProgressProvider with ChangeNotifier {

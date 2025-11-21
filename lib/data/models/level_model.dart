@@ -1,3 +1,5 @@
+// lib/data/models/level_model.dart
+
 class Level {
   final int? id;
   final String title;
@@ -23,7 +25,8 @@ class Level {
       'title': title,
       'description': description,
       'category': category,
-      'order': order,
+      // Se for salvar de volta no banco, tem que usar o nome certo também:
+      'order_num': order, 
       'isLocked': isLocked ? 1 : 0,
       'requiredPoints': requiredPoints,
     };
@@ -35,9 +38,11 @@ class Level {
       title: map['title'],
       description: map['description'],
       category: map['category'],
-      order: map['order'],
+      // CORREÇÃO AQUI: mudou de map['order'] para map['order_num']
+      order: map['order_num'] ?? 0, 
       isLocked: map['isLocked'] == 1,
-      requiredPoints: map['requiredPoints'],
+      // Dica: Adicione ?? 0 para segurança em requiredPoints também
+      requiredPoints: map['requiredPoints'] ?? 0, 
     );
   }
 }

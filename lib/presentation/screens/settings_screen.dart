@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:logdomilhao/core/theme/app_theme.dart';
+import 'package:logdomilhao/providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,11 +11,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = false;
   String _selectedLanguage = 'pt';
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configurações'),
@@ -74,13 +77,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Modo Escuro'),
                     subtitle: const Text('Ativar tema escuro'),
-                    value: _isDarkMode,
+                    value: themeProvider.isDarkMode,
                     activeThumbColor: AppTheme.primaryColor,
                     onChanged: (value) {
-                      setState(() {
-                        _isDarkMode = value;
-                      });
-                      // Aqui implementaríamos a mudança real do tema
+                      themeProvider.toggleTheme();
                     },
                   ),
                 ],

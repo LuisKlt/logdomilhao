@@ -1,11 +1,14 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:logdomilhao/data/models/score_model.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
 
-  DatabaseHelper._init();
+  factory DatabaseHelper() => _instance;
+
+  DatabaseHelper._internal();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -84,73 +87,156 @@ class DatabaseHelper {
   }
 
   Future<void> _insertInitialData(Database db) async {
-    // Inserir níveis iniciais
+    // 1. Inserir Usuário Padrão
+    await db.insert('users', {
+      'username': 'Estudante',
+      'totalPoints': 0,
+      'currentLevel': 1,
+      'language': 'pt'
+    });
+
+    // 2. Inserir Níveis (Level 1 desbloqueado, outros bloqueados)
+    // Nível 1
     await db.insert('levels', {
       'title': 'Variáveis e Tipos',
-      'description': 'Aprenda sobre variáveis e tipos de dados em programação',
+      'description': 'Aprenda sobre variáveis e tipos de dados.',
       'category': 'variables',
       'order_num': 1,
-      'isLocked': 0,
+      'isLocked': 0, // ABERTO
       'requiredPoints': 0
     });
 
+    // Nível 2
     await db.insert('levels', {
       'title': 'Entrada e Saída',
-      'description': 'Aprenda como receber e exibir dados em programação',
+      'description': 'Como receber dados do usuário e exibir na tela.',
       'category': 'input_output',
       'order_num': 2,
-      'isLocked': 1,
-      'requiredPoints': 50
+      'isLocked': 1, // TRAVADO
+      'requiredPoints': 0 // A lógica de desbloqueio agora é por conclusão do anterior
     });
 
+    // Nível 3
     await db.insert('levels', {
       'title': 'Condicionais',
-      'description': 'Aprenda sobre estruturas condicionais em programação',
+      'description': 'Tomada de decisões com If/Else.',
       'category': 'conditionals',
       'order_num': 3,
-      'isLocked': 1,
-      'requiredPoints': 100
+      'isLocked': 1, // TRAVADO
+      'requiredPoints': 0
     });
 
+    // Nível 4
     await db.insert('levels', {
       'title': 'Laços de Repetição',
-      'description': 'Aprenda sobre estruturas de repetição em programação',
+      'description': 'Repetindo tarefas com For e While.',
       'category': 'loops',
       'order_num': 4,
-      'isLocked': 1,
-      'requiredPoints': 150
+      'isLocked': 1, // TRAVADO
+      'requiredPoints': 0
     });
 
+    // Nível 5
     await db.insert('levels', {
       'title': 'Funções',
-      'description': 'Aprenda sobre funções e modularização em programação',
+      'description': 'Organizando e reutilizando código.',
       'category': 'functions',
       'order_num': 5,
-      'isLocked': 1,
-      'requiredPoints': 200
+      'isLocked': 1, // TRAVADO
+      'requiredPoints': 0
     });
 
-    // Inserir exercícios iniciais para o nível 1
+    // ---------------------------------------------------------
+    // 3. Inserir Exercícios
+    // ---------------------------------------------------------
+
+    // === EXERCÍCIOS DO NÍVEL 1 (Variáveis) ===
+    
+    // Ex 1: Declaração (Multiple Choice)
     await db.insert('exercises', {
       'levelId': 1,
-      'title': 'Declaração de Variáveis',
-      'description': 'Escolha a forma correta de declarar uma variável inteira em Python',
+      'title': 'Declarando Inteiros',
+      'description': 'Qual a sintaxe correta para um número inteiro?',
       'type': 'multiple_choice',
-      'content': 'Como declarar uma variável inteira chamada "idade" com valor 25?',
-      'correctAnswer': 'idade = 25',
-      'options': 'int idade = 25|idade = 25|var idade = 25|idade: int = 25',
+      'content': 'Como declarar uma variável inteira chamada "idade" com valor 25 em Dart/Java/C?',
+      'correctAnswer': 'int idade = 25;',
+      'options': 'int idade = 25;|var idade = 25|idade = 25|String idade = "25";',
       'points': 10
     });
 
+    // Ex 2: Tipos de Dados (Multiple Choice)
     await db.insert('exercises', {
       'levelId': 1,
-      'title': 'Tipos de Dados',
-      'description': 'Identifique o tipo de dado correto',
+      'title': 'Identificando Tipos',
+      'description': 'Identifique o tipo de dado decimal.',
       'type': 'multiple_choice',
-      'content': 'Qual é o tipo de dado da variável x na expressão: x = 3.14?',
-      'correctAnswer': 'float',
-      'options': 'int|float|string|boolean',
+      'content': 'Qual é o tipo de dado mais adequado para armazenar o valor 3.14?',
+      'correctAnswer': 'double',
+      'options': 'int|double|String|boolean',
       'points': 10
+    });
+
+    // Ex 3: String (Fill Blank)
+    await db.insert('exercises', {
+      'levelId': 1,
+      'title': 'Variável de Texto',
+      'description': 'Complete o código para criar um texto.',
+      'type': 'fill_blank',
+      'content': 'Complete para criar uma variável nome com valor "Ana":\n___ nome = "Ana";',
+      'correctAnswer': 'String',
+      'options': '', // Não usado em fill_blank
+      'points': 10
+    });
+    
+    // Ex 4: Ordenação (Code Ordering)
+    await db.insert('exercises', {
+      'levelId': 1,
+      'title': 'Estrutura Básica',
+      'description': 'Monte a estrutura de uma declaração.',
+      'type': 'code_ordering',
+      'content': 'Ordene para declarar um booleano verdadeiro:',
+      'correctAnswer': 'bool isAtivo = true;',
+      'options': 'bool|isAtivo|=|true;',
+      'points': 10
+    });
+
+    // === EXERCÍCIOS DO NÍVEL 2 (Entrada e Saída) ===
+
+    // Ex 1: Print (Multiple Choice)
+    await db.insert('exercises', {
+      'levelId': 2,
+      'title': 'Exibindo Mensagens',
+      'description': 'Qual comando exibe texto no console em Dart?',
+      'type': 'multiple_choice',
+      'content': 'Qual função é usada para imprimir no console?',
+      'correctAnswer': 'print()',
+      'options': 'echo()|console.log()|print()|System.out.println()',
+      'points': 15
+    });
+
+    // Ex 2: Concatenação (Fill Blank)
+    await db.insert('exercises', {
+      'levelId': 2,
+      'title': 'Juntando Textos',
+      'description': 'Complete a concatenação.',
+      'type': 'fill_blank',
+      'content': 'Complete o print: print("Olá " _ nome);',
+      'correctAnswer': '+',
+      'options': '',
+      'points': 15
+    });
+
+    // === EXERCÍCIOS DO NÍVEL 3 (Condicionais) ===
+    
+    await db.insert('exercises', {
+      'levelId': 3,
+      'title': 'Lógica do IF',
+      'description': 'Como funciona o SE.',
+      'type': 'multiple_choice',
+      'content': 'O código dentro do "if" só é executado quando a condição for:',
+      'correctAnswer': 'Verdadeira',
+      'options': 'Falsa|Verdadeira|Nula|Indefinida',
+      'points': 20
     });
   }
 
@@ -180,8 +266,31 @@ class DatabaseHelper {
     return await db.delete(table, where: whereClause, whereArgs: whereArgs);
   }
 
-  Future<void> close() async {
-    final db = await instance.database;
-    db.close();
+  // Métodos específicos para pontuações
+  Future<int> insertScore(Score score) async {
+    final db = await database;
+    return await db.insert('scores', score.toMap());
+  }
+
+  Future<List<Score>> getScores() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('scores', orderBy: 'completedAt DESC');
+    
+    // Se não houver pontuações, retornar lista vazia
+    if (maps.isEmpty) {
+      return [];
+    }
+    
+    return List.generate(maps.length, (i) {
+      return Score.fromMap(maps[i]);
+    });
+  }
+
+  Future<void> closeConnection() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null; // Isso é crucial! Força o _initDB a rodar de novo na próxima vez
+    }
   }
 }
