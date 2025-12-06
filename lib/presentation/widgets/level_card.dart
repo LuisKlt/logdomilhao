@@ -31,6 +31,15 @@ class LevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    // Cores adaptativas para o tema
+    final unlockedTitleColor = colorScheme.onSurface;
+    final unlockedDescriptionColor = colorScheme.onSurface.withOpacity(0.7);
+    final lockedColor = colorScheme.onSurface.withOpacity(0.5);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -49,14 +58,16 @@ class LevelCard extends StatelessWidget {
                 height: 60,
                 decoration: BoxDecoration(
                   color: level.isLocked
-                      ? Colors.grey.withOpacity(0.2)
+                      ? colorScheme.surfaceVariant.withOpacity(0.3)
                       : AppTheme.primaryColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   level.isLocked ? Icons.lock : _getCategoryIcon(),
                   size: 30,
-                  color: level.isLocked ? Colors.grey : AppTheme.primaryColor,
+                  color: level.isLocked 
+                      ? lockedColor 
+                      : AppTheme.primaryColor,
                 ),
               ),
               const SizedBox(width: 16),
@@ -69,7 +80,9 @@ class LevelCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: level.isLocked ? Colors.grey : Colors.black87,
+                        color: level.isLocked 
+                            ? lockedColor 
+                            : unlockedTitleColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -77,24 +90,26 @@ class LevelCard extends StatelessWidget {
                       level.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: level.isLocked ? Colors.grey : Colors.black54,
+                        color: level.isLocked 
+                            ? lockedColor 
+                            : unlockedDescriptionColor,
                       ),
                     ),
                     if (level.isLocked) ...[
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.star,
                             size: 16,
-                            color: Colors.amber,
+                            color: Colors.amber.shade600,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             '${level.requiredPoints} pontos necessários',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: lockedColor,
                             ),
                           ),
                         ],
@@ -105,7 +120,9 @@ class LevelCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: level.isLocked ? Colors.grey : AppTheme.primaryColor,
+                color: level.isLocked 
+                    ? lockedColor 
+                    : AppTheme.primaryColor,
               ),
             ],
           ),
