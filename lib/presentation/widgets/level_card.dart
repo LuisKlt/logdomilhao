@@ -33,7 +33,7 @@ class LevelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    //final textTheme = theme.textTheme;
 
     // Cores adaptativas para o tema
     final unlockedTitleColor = colorScheme.onSurface;
@@ -65,9 +65,7 @@ class LevelCard extends StatelessWidget {
                 child: Icon(
                   level.isLocked ? Icons.lock : _getCategoryIcon(),
                   size: 30,
-                  color: level.isLocked 
-                      ? lockedColor 
-                      : AppTheme.primaryColor,
+                  color: level.isLocked ? lockedColor : AppTheme.primaryColor,
                 ),
               ),
               const SizedBox(width: 16),
@@ -80,9 +78,8 @@ class LevelCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: level.isLocked 
-                            ? lockedColor 
-                            : unlockedTitleColor,
+                        color:
+                            level.isLocked ? lockedColor : unlockedTitleColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -90,8 +87,8 @@ class LevelCard extends StatelessWidget {
                       level.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: level.isLocked 
-                            ? lockedColor 
+                        color: level.isLocked
+                            ? lockedColor
                             : unlockedDescriptionColor,
                       ),
                     ),
@@ -120,9 +117,7 @@ class LevelCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: level.isLocked 
-                    ? lockedColor 
-                    : AppTheme.primaryColor,
+                color: level.isLocked ? lockedColor : AppTheme.primaryColor,
               ),
             ],
           ),

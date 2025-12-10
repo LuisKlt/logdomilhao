@@ -30,7 +30,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   void initState() {
     super.initState();
     _codeController = TextEditingController();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ExerciseProvider>(context, listen: false)
           .loadExercisesByLevel(widget.levelId);
@@ -39,7 +39,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   void _checkAnswer(List<Exercise> exercises) {
     final currentExercise = exercises[_currentExerciseIndex];
-    final gamificationProvider = Provider.of<GamificationProvider>(context, listen: false);
+    final gamificationProvider =
+        Provider.of<GamificationProvider>(context, listen: false);
 
     setState(() {
       _hasAnswered = true;
@@ -50,10 +51,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
           correct = _selectedAnswer == currentExercise.correctAnswer;
           break;
         case 'fill_blank':
-          correct = _codeController.text.trim() == currentExercise.correctAnswer;
+          correct =
+              _codeController.text.trim() == currentExercise.correctAnswer;
           break;
         case 'code_ordering':
-          correct = _selectedOrder.join('') == currentExercise.correctAnswer;
+          // CORREÇÃO AQUI: Comparar a ordem como string separada por vírgulas
+          correct = _selectedOrder.join(' ') == currentExercise.correctAnswer;
           break;
       }
 
@@ -62,16 +65,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       if (_isCorrect) {
         _levelScore += currentExercise.points;
         gamificationProvider.addScore(
-          currentExercise.id!, 
-          true, 
-          currentExercise.points
-        );
+            currentExercise.id!, true, currentExercise.points);
       } else {
-        gamificationProvider.addScore(
-          currentExercise.id!, 
-          false, 
-          0
-        );
+        gamificationProvider.addScore(currentExercise.id!, false, 0);
       }
     });
   }
@@ -93,82 +89,91 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   Future<void> _showFinalResult(List<Exercise> exercises) async {
     final maxPoints = exercises.fold(0, (sum, e) => sum + e.points);
-    final exerciseProvider = Provider.of<ExerciseProvider>(context, listen: false);
-    
+    final exerciseProvider =
+        Provider.of<ExerciseProvider>(context, listen: false);
+
     final bool unlockedNew = await exerciseProvider.submitLevelResult(
-      context, 
-      widget.levelId, 
-      _levelScore, 
-      maxPoints
-    );
+        context, widget.levelId, _levelScore, maxPoints);
 
     if (!mounted) return;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Nível Concluído!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _levelScore >= (maxPoints / 2) ? Icons.emoji_events : Icons.sentiment_neutral,
-              color: _levelScore >= (maxPoints / 2) ? Colors.amber : Colors.grey,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Você fez $_levelScore de $maxPoints pontos!',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            if (unlockedNew)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green[100],
-                  borderRadius: BorderRadius.circular(8)
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lock_open, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('Próximo nível desbloqueado!', style: TextStyle(color: Colors.green)),
-                  ],
-                ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return AlertDialog(
+          backgroundColor: theme.dialogBackgroundColor,
+          title: Text('Nível Concluído!',
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _levelScore >= (maxPoints / 2)
+                    ? Icons.emoji_events
+                    : Icons.sentiment_neutral,
+                color: _levelScore >= (maxPoints / 2)
+                    ? Colors.amber
+                    : theme.hintColor,
+                size: 64,
               ),
-            if (!unlockedNew && _levelScore < (maxPoints / 2))
-              const Text(
-                'Você precisa de pelo menos 50% dos pontos para avançar.',
+              const SizedBox(height: 16),
+              Text(
+                'Você fez $_levelScore de $maxPoints pontos!',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
               ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('VOLTAR AOS NÍVEIS'),
+              const SizedBox(height: 16),
+              if (unlockedNew)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_open, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text('Próximo nível desbloqueado!',
+                          style: TextStyle(color: Colors.green)),
+                    ],
+                  ),
+                ),
+              if (!unlockedNew && _levelScore < (maxPoints / 2))
+                Text(
+                  'Você precisa de pelo menos 50% dos pontos para avançar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.red),
+                ),
+            ],
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: const Text('VOLTAR AOS NÍVEIS'),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  // =============== WIDGETS INTERATIVOS MELHORADOS ===============
-
   Widget _buildMultipleChoice(Exercise exercise) {
+    final theme = Theme.of(context);
     return Column(
       children: exercise.options.map((option) {
         final isSelected = _selectedAnswer == option;
         final isCorrect = option == exercise.correctAnswer;
-        
+
         Color? backgroundColor;
         if (_hasAnswered) {
           if (isSelected && isCorrect) {
@@ -179,18 +184,20 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             backgroundColor = Colors.green[50];
           }
         } else if (isSelected) {
-          backgroundColor = Theme.of(context).primaryColor.withOpacity(0.1);
+          backgroundColor = theme.primaryColor.withOpacity(0.1);
         }
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           color: backgroundColor,
           child: ListTile(
-            onTap: _hasAnswered ? null : () {
-              setState(() {
-                _selectedAnswer = option;
-              });
-            },
+            onTap: _hasAnswered
+                ? null
+                : () {
+                    setState(() {
+                      _selectedAnswer = option;
+                    });
+                  },
             leading: isSelected
                 ? Icon(
                     _hasAnswered
@@ -198,7 +205,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         : Icons.radio_button_checked,
                     color: _hasAnswered
                         ? (isCorrect ? Colors.green : Colors.red)
-                        : Theme.of(context).primaryColor,
+                        : theme.primaryColor,
                   )
                 : Icon(
                     _hasAnswered && isCorrect
@@ -206,7 +213,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         : Icons.radio_button_unchecked,
                     color: _hasAnswered && isCorrect
                         ? Colors.green
-                        : Colors.grey,
+                        : theme.hintColor,
                   ),
             title: Text(
               option,
@@ -214,6 +221,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 fontWeight: isSelected || (_hasAnswered && isCorrect)
                     ? FontWeight.bold
                     : FontWeight.normal,
+                color: theme.textTheme.bodyMedium?.color,
               ),
             ),
           ),
@@ -225,11 +233,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   Widget _buildFillBlank(Exercise exercise) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Instruções
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Text(
@@ -241,8 +248,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             ),
           ),
         ),
-        
-        // Editor de código (simulado)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -330,8 +335,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             ],
           ),
         ),
-        
-        // Botão de limpar (só aparece se tiver texto e não tiver respondido)
         if (!_hasAnswered && _codeController.text.isNotEmpty)
           Align(
             alignment: Alignment.centerRight,
@@ -343,15 +346,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     _codeController.clear();
                   });
                 },
-                icon: const Icon(Icons.clear, size: 16),
-                label: const Text('Limpar'),
+                icon: Icon(Icons.clear, size: 16, color: theme.primaryColor),
+                label:
+                    Text('Limpar', style: TextStyle(color: theme.primaryColor)),
               ),
             ),
           ),
-        
         const SizedBox(height: 20),
-        
-        // Feedback da resposta
         if (_hasAnswered)
           Container(
             padding: const EdgeInsets.all(16),
@@ -400,9 +401,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
   Widget _buildCodeOrdering(Exercise exercise) {
     final theme = Theme.of(context);
-    
+
     // Inicializar blocos se estiver vazio
     if (_codeBlocks.isEmpty) {
+      // IMPORTANTE: Certifique-se que os blocos são separados corretamente
+      // Se exercise.options é uma lista de strings, usar ela diretamente
       _codeBlocks = List.from(exercise.options);
       _codeBlocks.shuffle();
     }
@@ -410,7 +413,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Instruções
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Text(
@@ -422,8 +424,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             ),
           ),
         ),
-        
-        // Área de blocos disponíveis
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -452,8 +452,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           _codeBlocks.shuffle();
                         });
                       },
-                      icon: const Icon(Icons.shuffle, size: 16),
-                      label: const Text('Embaralhar'),
+                      icon: Icon(Icons.shuffle,
+                          size: 16, color: theme.primaryColor),
+                      label: Text('Embaralhar',
+                          style: TextStyle(color: theme.primaryColor)),
                     ),
                 ],
               ),
@@ -472,10 +474,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.9),
+                          color: theme.primaryColor.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Theme.of(context).primaryColor,
+                            color: theme.primaryColor,
                             width: 2,
                           ),
                           boxShadow: [
@@ -501,15 +503,11 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       child: _buildCodeBlock(block, isSelected: false),
                     ),
                     child: isSelected
-                        ? _buildCodeBlock(
-                            block,
-                            isSelected: true,
-                            color: Colors.grey[300]!,
-                          )
+                        ? Container() // Bloco já na área de montagem não deve aparecer na lista disponível
                         : _buildCodeBlock(
                             block,
                             isSelected: false,
-                            color: Theme.of(context).primaryColor.withOpacity(0.1),
+                            color: theme.primaryColor.withOpacity(0.1),
                           ),
                   );
                 }).toList(),
@@ -517,10 +515,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
             ],
           ),
         ),
-        
         const SizedBox(height: 24),
-        
-        // Área de montagem
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -567,7 +562,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     return Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _selectedOrder.map((block) {
+                      children: _selectedOrder.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final block = entry.value;
                         return Draggable<String>(
                           data: block,
                           feedback: Material(
@@ -577,16 +574,30 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                 vertical: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green[100],
+                                color: theme.primaryColor.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.green),
+                                border: Border.all(color: theme.primaryColor),
                               ),
-                              child: Text(
-                                block,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${index + 1}. ',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    block,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -596,24 +607,44 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.green[50],
+                              color: theme.primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green),
+                              border: Border.all(color: theme.primaryColor),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: theme.primaryColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
                                 Text(
                                   block,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
+                                    color: theme.textTheme.bodyMedium?.color,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 if (!_hasAnswered)
                                   IconButton(
-                                    icon: const Icon(Icons.close, size: 16),
+                                    icon: Icon(Icons.close,
+                                        size: 16, color: theme.primaryColor),
                                     onPressed: () {
                                       setState(() {
                                         _selectedOrder.remove(block);
@@ -631,8 +662,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   },
                 ),
               ),
-              
-              // Botão de reset
               if (!_hasAnswered && _selectedOrder.isNotEmpty)
                 Align(
                   alignment: Alignment.centerRight,
@@ -644,18 +673,17 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           _selectedOrder.clear();
                         });
                       },
-                      icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Reiniciar'),
+                      icon: Icon(Icons.refresh,
+                          size: 16, color: theme.primaryColor),
+                      label: Text('Reiniciar',
+                          style: TextStyle(color: theme.primaryColor)),
                     ),
                   ),
                 ),
             ],
           ),
         ),
-        
         const SizedBox(height: 20),
-        
-        // Feedback da resposta
         if (_hasAnswered)
           Container(
             padding: const EdgeInsets.all(16),
@@ -695,6 +723,15 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     color: _isCorrect ? Colors.green[800] : Colors.red[800],
                   ),
                 ),
+                if (!_isCorrect) const SizedBox(height: 8),
+                if (!_isCorrect)
+                  Text(
+                    'Sua ordem: ${_selectedOrder.join(',')}',
+                    style: TextStyle(
+                      color: Colors.red[800],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -703,13 +740,16 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   }
 
   Widget _buildCodeBlock(String text, {bool isSelected = false, Color? color}) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isSelected ? Colors.grey[400]! : Colors.transparent,
+          color: isSelected
+              ? theme.hintColor.withOpacity(0.3)
+              : Colors.transparent,
         ),
       ),
       child: Text(
@@ -717,7 +757,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: isSelected ? Colors.grey[600] : null,
+          color:
+              isSelected ? theme.hintColor : theme.textTheme.bodyMedium?.color,
         ),
       ),
     );
@@ -757,21 +798,32 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nível ${widget.levelId} - Exercício ${_currentExerciseIndex + 1}'),
-        backgroundColor: Theme.of(context).primaryColor,
+        title: Text(
+          'Nível ${widget.levelId} - Exercício ${_currentExerciseIndex + 1}',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
       ),
       body: Consumer<ExerciseProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+                child: CircularProgressIndicator(
+              color: theme.primaryColor,
+            ));
           }
 
           if (provider.exercises.isEmpty) {
-            return const Center(child: Text('Nenhum exercício encontrado neste nível.'));
+            return Center(
+              child: Text(
+                'Nenhum exercício encontrado neste nível.',
+                style: TextStyle(color: theme.hintColor),
+              ),
+            );
           }
 
           final exercises = provider.exercises;
@@ -779,25 +831,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
           return Column(
             children: [
-              // Barra de progresso
               LinearProgressIndicator(
                 value: (_currentExerciseIndex + 1) / exercises.length,
                 backgroundColor: theme.dividerColor,
                 color: theme.primaryColor,
               ),
-
-              // Conteúdo do exercício
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Título e descrição
                       Text(
                         currentExercise.title,
                         style: theme.textTheme.headlineSmall!.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -808,8 +857,6 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
-                      // Enunciado do exercício
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -821,19 +868,16 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                           currentExercise.content,
                           style: theme.textTheme.bodyLarge!.copyWith(
                             fontWeight: FontWeight.w500,
+                            color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
                       ),
                       const SizedBox(height: 32),
-
-                      // Conteúdo interativo específico
                       _buildExerciseContent(currentExercise),
                     ],
                   ),
                 ),
               ),
-
-              // Barra inferior com botões
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -854,9 +898,10 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                       children: [
                         Text(
                           'Pontos deste nível: $_levelScore',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
                         Consumer<GamificationProvider>(
@@ -875,8 +920,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                     ElevatedButton(
                       onPressed: _hasAnswered
                           ? () => _nextExercise(exercises)
-                          : (_isAnswerSelected(currentExercise) 
-                              ? () => _checkAnswer(exercises) 
+                          : (_isAnswerSelected(currentExercise)
+                              ? () => _checkAnswer(exercises)
                               : null),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _hasAnswered
